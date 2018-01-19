@@ -1,0 +1,19 @@
+{
+  "name": "tessel-ambient-monitor",
+  "version": "0.1.0",
+  "description": "Tessel project",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "www.github.com/tessel/t2-cli",
+  "keywords": [
+    "Tessel"
+  ],
+  "license": "MIT",
+  "readme": "A bare bones Tessel 2 blinky script.",
+  "dependencies": {
+    "ambient-attx4": "^0.2.11",
+    "pico-slack": "^1.4.0"
+  }
+}
