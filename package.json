@@ -14,6 +14,8 @@
   "readme": "A bare bones Tessel 2 blinky script.",
   "dependencies": {
     "ambient-attx4": "^0.2.11",
-    "pico-slack": "^1.4.0"
+    "console-to-slack": "^0.1.2",
+    "pico-slack": "^1.4.0",
+    "tessel-av": "^0.19.0"
   }
 }
