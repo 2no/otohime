@@ -1,14 +1,15 @@
 'use strict';
 
-const DEFAULT_CONSOLE_LEVEL = 2;
+//=============================================================================
+// Variables
+//-----------------------------------------------------------------------------
 
-const config         = require('./config.json');
-const tessel         = require('tessel');
-const tesselAV       = require('tessel-av');
-const ambient        = require('ambient-attx4').use(tessel.port['A']);
-const Slack          = require('pico-slack');
-const consoleToSlack = require('console-to-slack');
-const playArgs       = [require('path').join(__dirname, 'sound.mp3'), '-r'];
+const config    = require('./config.json');
+const tessel    = require('tessel');
+const tesselAV  = require('tessel-av');
+const ambient   = require('ambient-attx4').use(tessel.port['A']);
+const soundFile = require('path').join(__dirname, 'sound.mp3');
+const Slack     = require('pico-slack');
 
 const SlackUserPresence = {
   AWAY: 'away',
@@ -17,28 +18,22 @@ const SlackUserPresence = {
 
 let currentPresence = SlackUserPresence.AWAY;
 let player          = null;
+let sojournTime     = 0;
 
-const consoleLevel = config.console.level || DEFAULT_CONSOLE_LEVEL;
-consoleToSlack.init(config.slack.webhookURL, consoleLevel);
 
-try {
-  player = new tesselAV.Player();
-} catch (e) {
-  console.warn('スピーカーとの接続に失敗しました。');
-}
-
-ambient.on('error', console.error).on('ready', handleAmbientReady);
+//=============================================================================
+// Functions
+//-----------------------------------------------------------------------------
 
 function handleAmbientReady() {
-  Slack.connect(config.slack.token).catch(console.error).then(() => {
-    const interval = config.lightLevel.checkInterval;
-    setInterval(() => ambient.getLightLevel(handleAmbientLightLebel), interval);
-  });
+  Slack.connect(config.slack.token)
+    .catch(console.error)
+    .then(handleSlackConnect);
 }
 
 function handleAmbientLightLebel(error, lightData) {
   if (error) {
-    console.error(error);
+    Slack.error(error);
     return;
   }
 
@@ -52,9 +47,52 @@ function handleAmbientLightLebel(error, lightData) {
   }
 
   currentPresence = presence;
-  if (player !== null) {
-    presence === SlackUserPresence.AUTO ? player.play(playArgs) : player.stop();
+  if (presence === SlackUserPresence.AUTO) {
+    player !== null && player.play([soundFile, '-r']);
+    Slack.info('入室しました。');
+    sojournTime = new Date();
+  } else {
+    player !== null && player.pause();
+    Slack.info(`退室しました。 滞在時間(${(Date.now() - sojournTime) / 1000}s)`);
+    sojournTime = 0;
   }
 
-  Slack.api('users.setPresence', {presence}).catch(console.error).then(console.log);
+  setSlackUpserPresence(presence);
 }
+
+function handleSlackConnect() {
+  Slack.info('音姫起動');
+  setSlackUpserPresence(currentPresence);
+
+  try {
+    player = new tesselAV.Player();
+    Slack.info('スピーカー接続成功');
+  } catch (e) {
+    Slack.warn('スピーカー接続失敗');
+  }
+
+  const interval = config.lightLevel.checkInterval;
+  setInterval(() => ambient.getLightLevel(handleAmbientLightLebel), interval);
+}
+
+function handleProcessExit() {
+  Slack.info('音姫停止');
+}
+
+function setSlackUpserPresence(presence) {
+  Slack.api('users.setPresence', {presence})
+    .catch(console.error)
+    .then(console.log);
+}
+
+
+//=============================================================================
+// Process
+//-----------------------------------------------------------------------------
+
+process.on('exit', handleProcessExit);
+
+Slack.log_channel = config.slack.logChannel;
+
+ambient.on('error', console.error).on('ready', handleAmbientReady);
+

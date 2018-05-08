@@ -11,7 +11,8 @@ otohime
   },
   "slack": {
     "token": "Slack token",
-    "webhookURL": "Slack webhook URL"
+    "webhookURL": "Slack webhook URL",
+    "logChannel": "Slack channel"
   }
 }
 ```
