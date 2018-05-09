@@ -75,6 +75,10 @@ function handleSlackConnect() {
   setInterval(() => ambient.getLightLevel(handleAmbientLightLebel), interval);
 }
 
+function handleDeath() {
+  Slack.info('音姫停止');
+}
+
 function setSlackUpserPresence(presence) {
   Slack.api('users.setPresence', {presence})
     .catch(console.error)
@@ -85,6 +89,8 @@ function setSlackUpserPresence(presence) {
 //=============================================================================
 // Process
 //-----------------------------------------------------------------------------
+
+require('death')(handleDeath);
 
 Slack.log_channel = config.slack.logChannel;
 
